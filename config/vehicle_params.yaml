@@ -1,0 +1,526 @@
+# =============================================================================
+# FORMULA STUDENT EV — VEHICLE PARAMETERS
+# =============================================================================
+# SPCE Racing | Created by Arceus
+#
+# This file is the SINGLE SOURCE OF TRUTH for all vehicle parameters.
+# Changing values here immediately affects all simulation results.
+# All units are SI unless otherwise noted.
+# =============================================================================
+
+
+# ===== MASS PROPERTIES =====
+# These define how the car's weight is distributed and how it resists rotation.
+# Weight distribution affects tire loading, which directly impacts grip
+# available at each axle.
+
+mass:
+  total: 300  # kg, including 75 kg driver
+    # Lighter = faster acceleration, but less tire load = less grip
+    # FSAE typical range: 180–300 kg
+
+  weight_distribution:
+    front: 0.45  # 45% of weight on front axle (135 kg)
+    rear: 0.55   # 55% of weight on rear axle (165 kg)
+    # Rear bias helps with traction since motor drives rear wheels.
+    # More weight on driven wheels = more grip for acceleration.
+
+  center_of_gravity_height: 0.28  # meters above ground
+    # Lower CG = less weight transfer in corners = more stable.
+    # FSAE typical: 0.25–0.35 m. Lower is always better but limited by packaging.
+
+  moment_of_inertia_yaw: 120  # kg·m², resistance to rotation around vertical axis
+    # Lower = car changes direction faster (more "flickable").
+    # Calculated from mass distribution. Matters for tight slaloms/chicanes.
+    # Formula: Izz ≈ mass × (wheelbase² + track²) / 12
+
+
+# ===== CHASSIS GEOMETRY =====
+
+geometry:
+  wheelbase: 1.55  # meters, front axle to rear axle distance
+    # Affects weight transfer during braking/acceleration.
+    # Shorter wheelbase = more agile, longer = more stable at speed.
+
+  track_width:
+    front: 1.20  # meters, distance between front wheel centers
+    rear: 1.15   # meters, distance between rear wheel centers
+    # Wider track = more lateral load transfer resistance = better cornering.
+    # Also affects turning radius (wider = larger radius).
+
+
+# ===== MOTOR SPECIFICATIONS =====
+# Single EMRAX 228 Medium Voltage (Liquid Cooled) driving rear axle via
+# differential.
+
+motor:
+  type: "PMSM"  # Permanent Magnet Synchronous Motor (Axial Flux design)
+  model: "EMRAX 228 MV LC"
+  count: 1       # Single motor, driving rear differential
+  driven_axle: "rear"
+
+  # — TORQUE AND POWER —
+  peak_torque: 220  # Nm at motor shaft
+    # Absolute maximum the motor can produce (2-minute rating).
+    # In simulator, we hit this limit during hard acceleration from standstill.
+
+  continuous_torque: 130  # Nm at motor shaft (unlimited duration)
+    # Thermal limit — motor can sustain this indefinitely with liquid cooling.
+    # In endurance events, prolonged acceleration limited to this value.
+
+  peak_power: 62  # kW (occurs at ~5500 RPM)
+    # Power = Torque × RPM. At high RPM, power limit kicks in before torque limit.
+    # Formula: P = (T × RPM × 2π) / 60
+
+  continuous_power: 64  # kW (LC variant, with proper cooling)
+    # Liquid cooling allows higher continuous power than air-cooled version.
+    # This is what limits sustained high-speed performance.
+
+  max_rpm: 6500  # Maximum safe motor speed
+    # Mechanical limit. Above this, risk of rotor failure.
+    # With gear ratio, this sets your top speed.
+
+  operating_voltage_range: [50, 630]  # Volts DC [min, max]
+    # Motor works across wide voltage range, but optimized for ~630 V.
+    # Our 486 V pack is in the sweet spot.
+
+  # — EFFICIENCY —
+  peak_efficiency: 0.96  # 96% at optimal operating point
+    # 4% of input power lost as heat at best efficiency point.
+    # Efficiency varies with speed/torque — typically 90–96% in practice.
+
+  efficiency_map: "emrax_228_mv_efficiency"  # Reference to detailed map (optional)
+    # Advanced feature — 2D table of efficiency vs RPM and torque.
+    # For initial simulator, we can use constant 94% average.
+
+  # — ELECTRICAL CHARACTERISTICS —
+  kv_constant_peak: 8.68  # RPM per Volt DC at peak load
+    # How fast motor spins per volt applied.
+    # At 486 V: motor spins at 486 × 8.68 ≈ 4,218 RPM (unloaded would be higher).
+
+  kt_constant: 0.61  # Nm per Amp RMS
+    # Torque produced per amp of current.
+    # To get 220 Nm peak: need 220 / 0.61 ≈ 360 Amps.
+
+  peak_current: 360  # Amps RMS (AC current to motor)
+    # Maximum current motor can handle briefly.
+    # This current must come from battery (after controller conversion).
+
+  continuous_current: 180  # Amps RMS
+    # Thermal limit for motor windings.
+    # Exceeding this causes overheating.
+
+  phase_resistance: 7.06  # milliOhms at 25 °C (per phase)
+    # Internal resistance causes I²R losses (heating).
+    # At 360 A: loses 360² × 0.00706 ≈ 914 W per phase as heat.
+
+  weight: 13.5  # kg
+
+  # — THERMAL MANAGEMENT —
+  cooling_type: "liquid"  # Water/glycol cooling
+  max_temperature_continuous: 100  # °C for windings
+  max_temperature_peak: 120        # °C absolute limit
+    # Temperature sensors shut down motor if exceeded.
+    # In simulator, we model thermal derating at high temps.
+
+# ===== THERMAL MODELING =====
+# Parameters for detailed electro-thermal simulation of motor and inverter.
+
+thermal:
+  motor:
+    thermal_mass: 5000  # J/K (copper windings + iron core)
+    cooling_coefficient: 50  # W/K (liquid cooling)
+    ambient_temp: 25  # °C
+  inverter:
+    thermal_mass: 2000  # J/K
+    cooling_coefficient: 40  # W/K
+    ambient_temp: 30  # °C
+
+
+
+# ===== DRIVETRAIN =====
+# How motor power reaches the wheels.
+
+drivetrain:
+  gear_ratio: 10.0  # Motor RPM ÷ Wheel RPM
+    # 10:1 reduction. Motor spins 10× faster than wheels.
+    # Higher ratio = more torque at wheels, but lower top speed.
+    # Torque at wheels = motor torque × gear ratio × efficiency.
+
+  differential_type: "open"  # or "limited_slip" if equipped
+    # Open diff = power goes to wheel with less resistance.
+    # Limited slip = can send power to both wheels unequally.
+
+  final_drive_efficiency: 0.93  # 93% efficient (gearbox + chain/belt + bearings)
+    # 7% of motor power lost as heat/friction in drivetrain.
+    # Torque at wheels = 220 Nm × 10 × 0.93 = 2,046 Nm per side (if split equally).
+
+  wheel_radius: 0.2032  # meters (20-inch wheels including tire)
+    # Larger radius = higher top speed, less torque multiplication.
+    # Force at ground = wheel torque ÷ radius.
+
+
+# ===== TORQUE CURVE DEFINITION =====
+# How motor torque varies with RPM — critical for acceleration simulation.
+
+motor_torque_curve:
+  type: "piecewise"  # Constant torque, then power-limited
+
+  regions:
+    - rpm_range: [0, 4500]
+      torque_type: "constant"
+      peak_torque: 220        # Nm
+      continuous_torque: 130  # Nm
+      # At low RPM, motor is torque-limited (not power-limited).
+      # Flat torque = brutal acceleration from standstill.
+
+    - rpm_range: [4500, 6500]
+      torque_type: "power_limited"
+      formula: "T = (P_peak × 60) / (2π × RPM)"
+      # Above 4500 RPM, power limit kicks in.
+      # Torque must decrease as speed increases to keep power constant.
+      # At 6500 RPM: T = (62000 × 60) / (2π × 6500) ≈ 91 Nm.
+
+  # For simulator: create lookup table with 100-RPM resolution.
+  # Interpolate between points for smooth torque calculation.
+
+
+# ===== BATTERY SPECIFICATIONS =====
+# Molicel P45B 21700 cells in 135s4p configuration.
+
+# — CELL-LEVEL SPECS (individual cell performance) —
+cell:
+  model: "Molicel P45B 21700"
+  chemistry: "NMC"  # Nickel Manganese Cobalt
+
+  capacity: 4.5  # Ah nominal (4.3 Ah minimum spec)
+    # Amp-hours = how much charge stored.
+    # 4.5 Ah at 3.6 V = 16.2 Wh per cell.
+
+  voltage:
+    nominal: 3.6  # Volts (average during discharge)
+    max: 4.2      # Volts (fully charged)
+    min: 2.5      # Volts (empty — don't discharge below this)
+    # Voltage sags under load due to internal resistance.
+    # Operating range typically 3.0–4.1 V to preserve cell life.
+
+  current_limits:
+    continuous: 45    # Amps (10C rate, indefinite duration)
+    peak: 67.5        # Amps (15C rate, <30 second bursts)
+    charge_max: 13.5  # Amps (3C charging rate, with cooling)
+    # "C-rate" = multiple of capacity (e.g., 10C = 10 × 4.5 A = 45 A).
+    # These cells are HIGH power — most cells can't do 10C continuous.
+
+  resistance_dc_50soc: 15  # milliOhms at 50% state of charge
+    # Internal resistance causes voltage drop under load.
+    # At 45 A: voltage drops by 45 × 0.015 = 0.675 V.
+    # Also causes power loss: I²R = 45² × 0.015 = 30 W lost as heat per cell.
+
+  weight: 0.070  # kg (70 grams per cell)
+
+  temperature_limits:
+    discharge_min: 0    # °C (below this, reduced performance)
+    discharge_max: 60   # °C (above this, life degradation accelerates)
+    charge_min: 0       # °C (can't charge below freezing safely)
+    charge_max: 45      # °C (higher temps degrade life during charging)
+
+
+# — PACK-LEVEL SPECS (entire battery assembly) —
+battery_pack:
+  configuration: "135s4p"  # 135 cells in series, 4 strings in parallel
+    # Series voltage adds: 135 × 3.6 V = 486 V
+    # Parallel capacity adds: 4 × 4.5 Ah = 18 Ah
+    # Total cells: 135 × 4 = 540 cells
+
+  total_cells: 540
+
+  capacity: 18  # Ah (4.5 Ah × 4 parallel strings)
+    # Total charge stored. Higher capacity = longer runtime.
+
+  energy:
+    total: 8.75    # kWh (18 Ah × 486 V ÷ 1000)
+    usable: 7.0    # kWh (80% usable, 20–100% SOC range)
+    # Don't discharge below 20% to preserve battery life.
+    # Usable energy determines range in endurance events.
+
+  voltage:
+    nominal: 486             # Volts (135s × 3.6 V)
+    max: 567                 # Volts (135s × 4.2 V, fully charged)
+    min: 337.5               # Volts (135s × 2.5 V, empty)
+    operating_typical: [450, 540]  # Normal operating range
+    # Voltage drops as battery discharges.
+    # Motor power drops with voltage (P = V × I).
+
+  current_limits:
+    continuous: 164  # Amps (limited by thermal management, slightly < 180 A cell limit × 4p)
+    peak: 200        # Amps (limited by BMS and wiring, <10 sec bursts)
+    charge_max: 54   # Amps (13.5 A × 4p, limited by charger)
+    # These are DC currents from battery.
+    # Motor controller converts DC to 3-phase AC for motor.
+
+  power_limits:
+    continuous: 80  # kW (164 A × 486 V)
+    peak: 97        # kW (200 A × 486 V)
+    regen_max: 40   # kW (charging during braking)
+    # Continuous power is your limiting factor in endurance.
+    # Peak power for brief acceleration bursts.
+    # Regen limited by battery charge acceptance and motor capability.
+
+  resistance:
+    pack_total: 0.506  # Ohms (15 mΩ × 135s ÷ 4p)
+    # Higher series count = more resistance.
+    # At 164 A: voltage drop = 164 × 0.506 = 83 V (substantial!).
+    # Power loss in pack: 164² × 0.506 = 13.6 kW lost as heat.
+
+  efficiency:
+    round_trip: 0.98       # 98% (charge/discharge efficiency)
+    discharge_only: 0.99   # 99% (most loss is from I²R heating)
+    # Very efficient — most losses are in resistance heating.
+
+  weight: 37.8  # kg (540 cells × 70 g per cell)
+    # Doesn't include BMS, cooling, enclosure.
+    # Total pack weight likely ~45–50 kg with packaging.
+
+  thermal:
+    cooling: "air_forced"       # Forced air cooling with fans
+    max_temperature: 60         # °C operational limit
+    derating_threshold: 50      # °C (reduce to continuous current only above this)
+    # Cells must stay cool for performance and safety.
+    # Above 50 °C, limit to 164 A continuous (no 200 A peaks).
+
+
+# ===== STATE OF CHARGE MODEL =====
+# How voltage changes with discharge.
+# Format: [SOC%, Voltage per cell]
+
+soc_voltage_curve:
+  points:
+    - [100, 4.15]  # Fully charged (slightly below 4.2 V under light load)
+    - [90, 3.90]
+    - [80, 3.75]
+    - [70, 3.65]
+    - [60, 3.60]   # Nominal voltage
+    - [50, 3.55]
+    - [40, 3.50]
+    - [30, 3.45]
+    - [20, 3.35]   # Bottom of usable range
+    - [10, 3.10]
+    - [0, 2.50]    # Empty (cutoff)
+  # Multiply by 135s for pack voltage.
+  # Voltage drops faster at high and low SOC.
+  # Most stable voltage in 30–80% SOC range.
+
+
+# ===== REGENERATIVE BRAKING =====
+# Energy recovery during braking/deceleration.
+
+regen:
+  enabled: true
+
+  max_power: 40  # kW total (limited by battery charge acceptance)
+    # Can't regen more than battery can absorb.
+    # At 486 V: 40 kW ≈ 82 A charging current.
+
+  max_torque: 60  # Nm at motor shaft (conservative, thermally limited)
+    # Motor acting as generator.
+    # Less than drive torque due to thermal limits on windings.
+
+  efficiency: 0.85  # 85% (motor as generator + DC/DC conversion losses)
+    # 15% lost as heat during regen.
+    # Still much better than friction brakes (100% heat loss).
+
+  wheel_torque_equivalent: 558  # Nm at wheels (60 Nm × 10 × 0.93)
+    # Equivalent braking force at wheels.
+    # At 0.2032 m radius ≈ 2,746 N force at contact patch.
+
+  blending:
+    mechanical_bias: 0.65  # 65% front when using friction brakes
+    regen_axle: "rear"     # Regen only on driven axle
+    # Must blend regen with mechanical brakes smoothly.
+    # Driver feels constant deceleration as speeds/forces change.
+
+  cutoff_speed: 2.78  # m/s (10 km/h)
+    # Disable regen at very low speeds for safety/smoothness.
+    # Also prevents overcharging at low power levels.
+
+
+# ===== TIRE SPECIFICATIONS =====
+# Hoosier R25B 18.0×6.0-10 (typical FSAE tire)
+
+tires:
+  model: "Hoosier R25B"
+  size: "18.0x6.0-10"
+  diameter: 0.508  # meters (20 inches)
+  width: 0.152     # meters (6 inches)
+
+  # — FRICTION MODEL (Simplified Pacejka "Magic Formula") —
+  friction:
+    peak_mu: 1.5     # Peak friction coefficient (dry asphalt)
+    nominal_mu: 1.4  # Typical operating coefficient
+    # μ = 1.5 means tire can generate 1.5× normal force as grip.
+    # At 750 N load: max grip = 750 × 1.5 = 1,125 N lateral or longitudinal.
+
+    slip_angle_peak: 4  # degrees (angle where peak lateral force occurs)
+    # Tire must "slip" slightly sideways to generate lateral force.
+    # 4° is typical for racing slicks.
+
+    load_sensitivity: -0.02  # μ decreases with increasing load
+    # More load = less μ (per Newton).
+    # At 1000 N: μ_effective = 1.5 + (-0.02 × (1000 − 750)) = 1.45
+    # This is why aerodynamic downforce isn't always purely beneficial.
+
+  # — PACEJKA COEFFICIENTS (for advanced tire model) —
+  pacejka:
+    B: 10        # Stiffness factor (how quickly force builds with slip)
+    C: 1.3       # Shape factor (affects curve shape)
+    D: "mu * Fz" # Peak value (load-dependent)
+    # Lateral force = D × sin(C × atan(B × slip_angle))
+    # These are simplified coefficients for the initial simulator.
+
+  vertical_stiffness: 200  # N/mm (spring rate of tire)
+    # How much tire compresses under load.
+    # Affects ride height and contact patch size.
+
+  rolling_resistance: 0.01  # Coefficient of rolling resistance
+    # Force resisting rolling = Crr × weight.
+    # At 300 kg (2943 N): rolling resistance ≈ 29.4 N.
+    # Small but affects top speed and energy consumption.
+
+
+# ===== AERODYNAMICS =====
+# Downforce and drag characteristics.
+
+aero:
+  frontal_area: 1.2  # m² (projected area from front view)
+    # Determines drag force magnitude.
+    # Smaller area = less drag but less downforce potential.
+
+  drag_coefficient: 0.95  # Cd (dimensionless)
+    # How "slippery" the car is.
+    # FSAE cars: 0.8–1.2 typical (Formula 1: ~0.7 with wings).
+    # Drag force = 0.5 × ρ × Cd × A × v²
+
+  lift_coefficients:
+    front: -1.8  # Cl_front (negative = downforce)
+    rear: -2.2   # Cl_rear
+    # More downforce = more grip but more drag.
+    # Rear bias (55%) matches weight distribution.
+    # Downforce = 0.5 × ρ × Cl × A × v²
+
+  balance: 0.45  # 45% front, 55% rear (aero balance)
+    # Should match weight distribution for neutral handling.
+    # Too much rear downforce = understeer at high speed.
+
+  center_of_pressure: 1.0  # meters from front axle
+    # Where net aerodynamic force acts.
+    # Should align with CG to avoid pitch moments.
+
+  reference_area: 1.0  # m² (area used for downforce calculations)
+    # May differ from frontal area.
+    # Typically uses planform area (top-down view).
+
+  air_density: 1.225  # kg/m³ (sea level, 15 °C)
+    # Higher altitude = less dense air = less downforce/drag.
+    # Changes with temperature and pressure.
+
+
+# ===== PERFORMANCE CONSTRAINTS =====
+# Physical limits the simulator must respect.
+
+limits:
+  # — ACCELERATION LIMITS (before considering specific mechanisms) —
+  lateral_g_max: 1.5       # g's (tire-limited before aero effects)
+    # At low speed, this is your cornering limit.
+    # At high speed, aero increases this substantially.
+
+  longitudinal_g_max: 1.2  # g's (motor/battery limited at low speed)
+    # Limited by either tire grip or motor torque.
+    # Rear weight bias helps (more load on driven wheels).
+
+  braking_g_max: 2.0       # g's (tire + brake system limited)
+    # Front weight transfer helps front braking.
+    # Can typically brake harder than accelerate.
+
+  # — SPEED LIMITS —
+  top_speed: 120           # km/h (33.3 m/s)
+    # Limited by motor RPM and gearing.
+    # Top speed in 10:1 gearing = (6500 RPM × 0.2032 m × 2π × 60) / 10 ≈ 138 km/h.
+    # Set slightly lower for safety margin.
+
+  minimum_turn_radius: 3.0  # meters
+    # Steering lock limited.
+    # Matters for hairpins and tight corners.
+
+
+# ===== VEHICLE DYNAMICS PARAMETERS =====
+# Advanced parameters for detailed simulation.
+
+dynamics:
+  # — SUSPENSION (simplified model) —
+  roll_stiffness: 1200        # Nm/degree (total)
+  roll_distribution: 0.50     # 50% front, 50% rear
+    # How car resists body roll in corners.
+    # Affects lateral load transfer between inside/outside tires.
+
+  # — STEERING —
+  steering_ratio: 3.5  # turns of steering wheel per turn of wheel
+    # Lower ratio = more responsive but touchier.
+
+  # — BRAKING —
+  brake_bias: 0.65  # 65% front, 35% rear (without regen)
+    # Reflects front weight transfer under braking.
+    # With regen on rear, effective bias changes.
+
+
+# ===== NOTES AND DESIGN RATIONALE =====
+
+notes:
+  battery_sizing: |
+    135s4p chosen to match EMRAX 228 MV optimal voltage (630 V max).
+    486 V nominal provides good margin below max.
+    4p provides 18 Ah = sufficient for 15–20 min endurance event.
+    Continuous 164 A = 80 kW sustained, adequate for single motor.
+
+  motor_selection: |
+    Single EMRAX 228 MV LC chosen for:
+    - Adequate power (62 kW peak) for 300 kg vehicle
+    - Proven Formula Student reliability
+    - Liquid cooling enables sustained performance
+    - Weight savings vs dual motor (13.5 kg vs 27 kg)
+    - Simpler drivetrain (no torque vectoring complexity)
+
+  single_vs_dual_motor: |
+    Single motor advantages:
+    - Lighter (13.5 kg weight savings)
+    - Simpler drivetrain/controls
+    - Lower power draw (easier on battery)
+    - Fewer failure points
+
+    Trade-offs:
+    - No torque vectoring (less agile)
+    - No redundancy (motor failure = DNF)
+    - Must use differential (mechanical complexity)
+
+  performance_targets: |
+    - 0–100 km/h: ~4.5 seconds (estimate)
+    - 75 m acceleration: ~5.0 seconds
+    - Endurance range: ~25 km at race pace
+    - Autocross lap: 45–55 seconds (track dependent)
+
+  limiting_factors: |
+    - Low speed acceleration: Motor torque (220 Nm)
+    - High speed acceleration: Battery power (80–97 kW)
+    - Cornering: Tire grip (μ × load)
+    - Top speed: Motor RPM limit (6500 RPM)
+    - Endurance: Battery energy (7 kWh usable)
+
+  thermal_considerations: |
+    Critical temperatures to monitor:
+    - Motor windings: <100 °C continuous
+    - Battery cells: <60 °C for performance
+    - Motor controller: <85 °C typical
+
+    Cooling requirements:
+    - Motor: 6 l/min water flow, <50 °C coolant
+    - Battery: Forced air, 100+ CFM per module
+    - Controller: Usually air-cooled with heat sink

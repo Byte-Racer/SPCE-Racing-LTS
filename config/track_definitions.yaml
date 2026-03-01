@@ -1,0 +1,518 @@
+# =============================================================================
+# FORMULA BHARAT — TRACK DEFINITIONS
+# =============================================================================
+# SPCE Racing | Created by Arceus
+#
+# This file defines all test tracks for the simulator. Each track is
+# represented by waypoints (x, y coordinates) that define the racing line
+# or track boundaries.
+#
+# COORDINATE SYSTEM:
+#   Origin (0, 0) is the starting point
+#   X-axis: positive to the right
+#   Y-axis: positive forward
+#   Units:  meters
+#   Track width: 3.5 m standard (cones 3 m apart minimum per FSAE rules)
+# =============================================================================
+
+
+tracks:
+  # List of all available tracks.
+  # Each track has: name, type, description, waypoints, and metadata.
+
+  # ###########################################################################
+  # TRACK 1: ACCELERATION (75 m STRAIGHT)
+  # ###########################################################################
+
+  - name: "fb_acceleration"
+    type: "drag_strip"
+    description: "Formula Bharat 75 m acceleration test"
+    event: "acceleration"
+
+    # EVENT RULES AND SCORING:
+    # - 75 m straight line acceleration from standing start
+    # - Measures 0–75 m time (target: <4.5 s for competitive EV)
+    # - Scoring: Fastest time gets max points
+    # - Two runs, best time counts
+    # - Tests: Motor torque, battery power delivery, traction control
+
+    metadata:
+      length: 75.0            # meters
+      width: 3.5              # meters (minimum per FSAE rules)
+      surface: "asphalt"
+      elevation_change: 0     # flat
+      direction: "forward_only"
+      typical_time_ev: 4.2    # seconds (competitive EV time)
+      typical_time_ic: 4.5    # seconds (competitive IC time)
+      max_speed_reached: 85   # km/h approximate
+
+    waypoints:
+      # Simple straight line — 10 m increments for simulation resolution
+      # Format: {x: meters, y: meters, width: meters, section: string}
+      - {x: 0.0, y: 0.0,  width: 3.5, section: "start"}
+      - {x: 0.0, y: 10.0, width: 3.5, section: "accel_zone"}
+      - {x: 0.0, y: 20.0, width: 3.5, section: "accel_zone"}
+      - {x: 0.0, y: 30.0, width: 3.5, section: "accel_zone"}
+      - {x: 0.0, y: 40.0, width: 3.5, section: "accel_zone"}
+      - {x: 0.0, y: 50.0, width: 3.5, section: "accel_zone"}
+      - {x: 0.0, y: 60.0, width: 3.5, section: "accel_zone"}
+      - {x: 0.0, y: 70.0, width: 3.5, section: "accel_zone"}
+      - {x: 0.0, y: 75.0, width: 3.5, section: "finish"}
+
+    simulation_notes: |
+      For acceleration event simulation:
+      1. Start from standstill (v = 0)
+      2. Apply maximum motor torque (limited by tire grip and battery power)
+      3. Account for weight transfer to rear (helps traction)
+      4. Model battery voltage sag under high current draw
+      5. Check if tire slip occurs (limit acceleration if needed)
+      6. Record time to 75 m mark
+
+      Key physics:
+      - Launch is traction-limited (tire grip vs motor torque)
+      - Mid-range is power-limited (battery 80–97 kW)
+      - No aerodynamic effects at these speeds (<85 km/h)
+      - Single gear ratio, no shifting
+
+
+  # ###########################################################################
+  # TRACK 2: SKIDPAD (FIGURE-8 CONSTANT RADIUS)
+  # ###########################################################################
+
+  - name: "fb_skidpad"
+    type: "figure_eight"
+    description: "Formula Bharat skidpad — tests steady-state cornering"
+    event: "skidpad"
+
+    # EVENT RULES AND SCORING:
+    # - Two circles, 15.25 m outer diameter each (9 m radius to track centre)
+    # - Drive figure-8 pattern: right circle → left circle → right circle → left circle
+    # - Timed on inner two loops (after warmup lap)
+    # - Tests: Maximum lateral grip, steady-state handling balance
+    # - Target: <5.0 s per loop for competitive EV
+
+    metadata:
+      circle_radius: 9.0              # meters (to track centreline)
+      circle_diameter_outer: 15.25    # meters (outer boundary)
+      track_width: 3.5                # meters
+      surface: "asphalt"
+      elevation_change: 0             # flat
+      direction: "figure_eight"
+      typical_time_per_loop: 4.8      # seconds (competitive EV)
+      typical_lateral_g: 1.3          # g's average (higher with aero)
+      laps_timed: 2                   # inner two loops only
+
+    waypoints:
+      # RIGHT CIRCLE (clockwise when viewed from above)
+      # Centre at (9, 0), radius 9 m, sampled around the circle
+
+      # Starting straight (approach to right circle)
+      - {x: 0.0, y: -5.0, width: 3.5, section: "approach", radius: 0}
+
+      # Right circle entry → 360°
+      - {x: 0.0,  y: 0.0, width: 3.5, section: "right_circle", radius: 9.0}
+      - {x: 2.6,  y: 2.6, width: 3.5, section: "right_circle", radius: 9.0}    # 45°
+      - {x: 4.5,  y: 4.5, width: 3.5, section: "right_circle", radius: 9.0}    # 90°
+      - {x: 6.4,  y: 6.4, width: 3.5, section: "right_circle", radius: 9.0}    # 135°
+      - {x: 9.0,  y: 9.0, width: 3.5, section: "right_circle", radius: 9.0}    # 180° (top)
+      - {x: 11.6, y: 6.4, width: 3.5, section: "right_circle", radius: 9.0}    # 225°
+      - {x: 13.5, y: 4.5, width: 3.5, section: "right_circle", radius: 9.0}    # 270°
+      - {x: 15.4, y: 2.6, width: 3.5, section: "right_circle", radius: 9.0}    # 315°
+      - {x: 18.0, y: 0.0, width: 3.5, section: "right_circle", radius: 9.0}    # 360° (complete)
+
+      # Transition to left circle
+      - {x: 18.0, y: -5.0, width: 3.5, section: "transition", radius: 0}
+
+      # LEFT CIRCLE (counter-clockwise, centre at (27, 0))
+      - {x: 18.0, y: 0.0, width: 3.5, section: "left_circle", radius: 9.0}
+      - {x: 20.6, y: 2.6, width: 3.5, section: "left_circle", radius: 9.0}
+      - {x: 22.5, y: 4.5, width: 3.5, section: "left_circle", radius: 9.0}
+      - {x: 24.4, y: 6.4, width: 3.5, section: "left_circle", radius: 9.0}
+      - {x: 27.0, y: 9.0, width: 3.5, section: "left_circle", radius: 9.0}
+      - {x: 29.6, y: 6.4, width: 3.5, section: "left_circle", radius: 9.0}
+      - {x: 31.5, y: 4.5, width: 3.5, section: "left_circle", radius: 9.0}
+      - {x: 33.4, y: 2.6, width: 3.5, section: "left_circle", radius: 9.0}
+      - {x: 36.0, y: 0.0, width: 3.5, section: "left_circle", radius: 9.0}
+
+      # Exit
+      - {x: 36.0, y: -5.0, width: 3.5, section: "exit", radius: 0}
+
+    simulation_notes: |
+      For skidpad simulation:
+      1. Calculate maximum cornering speed for 9 m radius
+         - Lateral accel required: ay = v² / r
+         - Max ay from tires + aero downforce
+         - Solve for v: v = sqrt(ay_max × r)
+
+      2. This is steady-state (constant radius, constant speed)
+         - No longitudinal acceleration (flat throttle in circle)
+         - Pure lateral loading on tires
+         - Weight transfer: inside wheels unload, outside load up
+
+      3. Time per loop = circumference / speed
+         - Circumference = 2π × 9 m = 56.5 m
+         - At 1.3 g and 9 m radius: v = sqrt(1.3 × 9.81 × 9) = 10.7 m/s = 38.5 km/h
+         - Time = 56.5 / 10.7 = 5.28 seconds
+
+      4. Faster time means:
+         - Higher tire grip coefficient
+         - More aerodynamic downforce
+         - Better weight distribution / transfer management
+
+      Critical: This event tests MAXIMUM lateral grip. It's the best way to validate
+      tire model and aero downforce calculations.
+
+
+  # ###########################################################################
+  # TRACK 3: AUTOCROSS (TECHNICAL COURSE)
+  # ###########################################################################
+
+  - name: "fb_autocross"
+    type: "autocross"
+    description: "Formula Bharat AutoCross — technical handling course"
+    event: "autocross"
+
+    # EVENT RULES AND SCORING:
+    # - ~1.0–1.5 km course with tight corners, slaloms, chicanes
+    # - Single car on track at a time, timed run
+    # - Tests: Overall car performance, handling, acceleration, braking
+    # - Typical competitive time: 60–75 seconds
+    # - Each team gets 2–4 runs, best time counts
+
+    metadata:
+      length: 1200                    # meters (approximate, typical FB autocross)
+      width: 3.5                      # meters minimum between cones
+      surface: "asphalt"
+      elevation_change: 0             # assume flat for simulation
+      direction: "closed_loop"
+      typical_time_ev: 68             # seconds (competitive)
+      average_speed: 63               # km/h
+      max_speed: 90                   # km/h (on longest straight)
+      number_of_corners: 18           # approximate
+      tightest_corner_radius: 7.5     # meters
+
+    # WAYPOINT GENERATION APPROACH:
+    # Since the actual FB 2024 track layout is proprietary, we create a
+    # representative autocross course with similar characteristics:
+    #   - Mix of tight hairpins (7.5–9 m radius)
+    #   - Medium corners (12–15 m radius)
+    #   - Slalom section (9 m cone spacing)
+    #   - Chicane
+    #   - Straights (30–60 m length)
+
+    waypoints:
+      # START / FINISH STRAIGHT
+      - {x: 0, y: 0,  width: 3.5, section: "start", radius: 0, speed_limit: 0}
+      - {x: 0, y: 20, width: 3.5, section: "accel_1", radius: 0}
+      - {x: 0, y: 40, width: 3.5, section: "accel_1", radius: 0}
+
+      # TURN 1 — 90° RIGHT (12 m radius)
+      - {x: 0,    y: 50,   width: 3.5, section: "turn_1_entry", radius: 12}
+      - {x: 3.5,  y: 53.5, width: 3.5, section: "turn_1_apex",  radius: 12}
+      - {x: 8.5,  y: 58.5, width: 3.5, section: "turn_1_exit",  radius: 12}
+      - {x: 12,   y: 62,   width: 3.5, section: "turn_1_exit",  radius: 12}
+
+      # SHORT STRAIGHT
+      - {x: 25, y: 62, width: 3.5, section: "straight_2", radius: 0}
+
+      # TURN 2 — 90° LEFT (12 m radius)
+      - {x: 35,   y: 62,   width: 3.5, section: "turn_2_entry", radius: 12}
+      - {x: 38.5, y: 65.5, width: 3.5, section: "turn_2_apex",  radius: 12}
+      - {x: 43.5, y: 70.5, width: 3.5, section: "turn_2_exit",  radius: 12}
+      - {x: 47,   y: 74,   width: 3.5, section: "turn_2_exit",  radius: 12}
+
+      # SLALOM SECTION (8 cones, 9 m spacing)
+      - {x: 47, y: 83,  width: 3.5, section: "slalom", radius: 25, slalom: true}
+      - {x: 49, y: 92,  width: 3.5, section: "slalom", radius: 25, slalom: true}
+      - {x: 47, y: 101, width: 3.5, section: "slalom", radius: 25, slalom: true}
+      - {x: 49, y: 110, width: 3.5, section: "slalom", radius: 25, slalom: true}
+      - {x: 47, y: 119, width: 3.5, section: "slalom", radius: 25, slalom: true}
+      - {x: 49, y: 128, width: 3.5, section: "slalom", radius: 25, slalom: true}
+      - {x: 47, y: 137, width: 3.5, section: "slalom", radius: 25, slalom: true}
+      - {x: 49, y: 146, width: 3.5, section: "slalom", radius: 25, slalom: true}
+
+      # LONG STRAIGHT (fastest section)
+      - {x: 49, y: 170, width: 3.5, section: "straight_3", radius: 0}
+      - {x: 49, y: 210, width: 3.5, section: "straight_3", radius: 0}
+
+      # HAIRPIN — 180° RIGHT (9 m radius, tightest corner)
+      - {x: 49, y: 220, width: 3.5, section: "hairpin_entry", radius: 9}
+      - {x: 52, y: 225, width: 3.5, section: "hairpin",       radius: 9}
+      - {x: 58, y: 229, width: 3.5, section: "hairpin_apex",  radius: 9}
+      - {x: 64, y: 225, width: 3.5, section: "hairpin",       radius: 9}
+      - {x: 67, y: 220, width: 3.5, section: "hairpin_exit",  radius: 9}
+
+      # STRAIGHT BACK
+      - {x: 67, y: 190, width: 3.5, section: "straight_4", radius: 0}
+      - {x: 67, y: 160, width: 3.5, section: "straight_4", radius: 0}
+
+      # CHICANE (left-right-left)
+      - {x: 67, y: 150, width: 3.5, section: "chicane_1", radius: 15}
+      - {x: 70, y: 145, width: 3.5, section: "chicane_1", radius: 15}
+      - {x: 67, y: 140, width: 3.5, section: "chicane_2", radius: 15}
+      - {x: 64, y: 135, width: 3.5, section: "chicane_2", radius: 15}
+      - {x: 67, y: 130, width: 3.5, section: "chicane_3", radius: 15}
+
+      # TURN 3 — 90° LEFT (12 m radius)
+      - {x: 67, y: 115, width: 3.5, section: "turn_3_entry", radius: 12}
+      - {x: 70, y: 108, width: 3.5, section: "turn_3_apex",  radius: 12}
+      - {x: 75, y: 103, width: 3.5, section: "turn_3_exit",  radius: 12}
+      - {x: 79, y: 100, width: 3.5, section: "turn_3_exit",  radius: 12}
+
+      # STRAIGHT TO TURN 4
+      - {x: 95, y: 100, width: 3.5, section: "straight_5", radius: 0}
+
+      # TURN 4 — 90° LEFT (12 m radius)
+      - {x: 105, y: 100, width: 3.5, section: "turn_4_entry", radius: 12}
+      - {x: 108, y: 97,  width: 3.5, section: "turn_4_apex",  radius: 12}
+      - {x: 113, y: 92,  width: 3.5, section: "turn_4_exit",  radius: 12}
+      - {x: 117, y: 88,  width: 3.5, section: "turn_4_exit",  radius: 12}
+
+      # FINAL STRAIGHT (back to start)
+      - {x: 117, y: 70, width: 3.5, section: "straight_final", radius: 0}
+      - {x: 117, y: 50, width: 3.5, section: "straight_final", radius: 0}
+
+      # FINAL CORNER — 90° LEFT to finish
+      - {x: 117, y: 40, width: 3.5, section: "final_corner", radius: 12}
+      - {x: 114, y: 33, width: 3.5, section: "final_corner", radius: 12}
+      - {x: 109, y: 28, width: 3.5, section: "final_corner", radius: 12}
+      - {x: 105, y: 25, width: 3.5, section: "final_corner", radius: 12}
+
+      # FINISH
+      - {x: 80, y: 25, width: 3.5, section: "finish_straight", radius: 0}
+      - {x: 50, y: 25, width: 3.5, section: "finish_straight", radius: 0}
+      - {x: 20, y: 25, width: 3.5, section: "finish_straight", radius: 0}
+      - {x: 0,  y: 25, width: 3.5, section: "finish", radius: 0}
+
+    simulation_notes: |
+      AutoCross simulation strategy:
+      1. This is the most complex event — combines all aspects:
+         - Heavy braking zones (before tight corners)
+         - Maximum acceleration (exiting corners, straights)
+         - High lateral-g corners (slalom, hairpin)
+         - Speed management (chicane rhythm)
+
+      2. Key simulation techniques:
+         - Use forward/backward pass algorithm
+         - Slalom sections: treat as series of shallow curves, not straights
+         - Chicanes: rapid direction changes, limited by lateral grip
+         - Straights: battery power-limited acceleration
+
+      3. Optimisation opportunities:
+         - Brake point optimisation (start braking just late enough)
+         - Apex speed optimisation (maximum speed through corner)
+         - Throttle application point (when to get back on power)
+         - Racing line (late apex vs early apex strategies)
+
+      4. This track provides best overall performance metric:
+         - Tests acceleration (motor / battery)
+         - Tests braking (mechanical + regen)
+         - Tests handling (suspension, tires, aero balance)
+         - Tests energy management (battery thermal limits)
+
+      Validation approach:
+      - Compare lap time to OptimumLap predictions
+      - Break down by section (acceleration, corner, braking time)
+      - Identify limiting factors (power, grip, braking)
+
+
+  # ###########################################################################
+  # TRACK 4: ENDURANCE (LONG AUTOCROSS-STYLE COURSE)
+  # ###########################################################################
+
+  - name: "fb_endurance"
+    type: "endurance"
+    description: "Formula Bharat Endurance — 22 km race (or energy equivalent)"
+    event: "endurance"
+
+    # EVENT RULES AND SCORING:
+    # - 22 km total distance OR maximum laps within energy limit
+    # - Two drivers, mandatory driver change mid-race
+    # - Same layout as AutoCross but repeated laps (~18–20 laps)
+    # - Tests: Reliability, energy management, consistency
+    # - Scoring: Time-based with energy consumption penalties
+    # - Typical duration: 20–25 minutes
+
+    metadata:
+      total_distance: 22000           # meters (22 km)
+      lap_length: 1200                # meters (same as autocross typically)
+      number_of_laps: 18              # approximate (22000 m / 1200 m)
+      width: 3.5                      # meters
+      surface: "asphalt"
+      elevation_change: 0             # assume flat
+      direction: "closed_loop"
+      typical_lap_time: 70            # seconds (slower than autocross — energy conservation)
+      typical_race_duration: 1260     # seconds (21 minutes)
+      energy_limit: 7.0               # kWh usable (based on our pack)
+
+    # NOTE: Endurance uses same track layout as AutoCross.
+    # Reference the autocross waypoints or create a similar layout.
+    waypoints: "USE_AUTOCROSS_LAYOUT"  # Special flag to reuse autocross waypoints
+
+    simulation_notes: |
+      Endurance simulation is fundamentally different from AutoCross:
+
+      1. ENERGY MANAGEMENT is critical:
+         - Must complete 22 km on 7 kWh usable energy
+         - Average energy consumption: 7000 Wh / 22 km = 318 Wh/km
+         - Cannot use full power continuously or battery depletes
+         - Must optimise: Speed vs Energy trade-off
+
+      2. SIMULATION APPROACH:
+         - Run autocross lap simulation at various power limits
+         - Find power level that: (a) completes 22 km, (b) minimises time
+         - Example power levels to test: 60%, 70%, 80%, 90%, 100%
+         - Plot: Power limit vs Lap time vs Energy consumption
+
+      3. BATTERY CONSIDERATIONS:
+         - Voltage drops as SOC decreases (affects available power)
+         - Temperature rises over 20+ minutes (may hit thermal limits)
+         - Must model:
+           * SOC vs lap number
+           * Battery temperature vs time
+           * Power derating as temp increases
+
+      4. STRATEGY OPTIMISATION:
+         - Should driver push hard early (when battery is fresh) or save energy?
+         - When does battery thermal limit kick in?
+         - What's the minimum lap time that still completes the distance?
+
+      5. VALIDATION METRICS:
+         - Total energy used: Must be ≤ 7.0 kWh
+         - Total time: Minimise (but must finish)
+         - Average lap time consistency
+         - Final battery SOC: Should be ~20% (bottom of usable range)
+         - Peak battery temperature: Should be < 60 °C
+
+      SIMULATOR SHOULD OUTPUT:
+      - Lap-by-lap breakdown:
+        * Lap time
+        * Energy used this lap
+        * Cumulative energy
+        * Battery SOC
+        * Battery temperature
+        * Available power (accounting for thermal derating)
+
+      - Race summary:
+        * Total time
+        * Total energy consumed
+        * Average lap time
+        * Fastest / slowest lap
+        * Did we finish? (yes / no)
+
+      This is the ultimate test of your vehicle simulation accuracy.
+
+
+  # ###########################################################################
+  # TRACK 5: SIMPLE TEST TRACK (FOR DEVELOPMENT / DEBUGGING)
+  # ###########################################################################
+
+  - name: "test_track"
+    type: "test"
+    description: "Simple test track for validating simulator physics"
+    event: "testing"
+
+    metadata:
+      length: 200               # meters
+      width: 3.5
+      surface: "asphalt"
+      elevation_change: 0
+      direction: "closed_loop"
+
+    waypoints:
+      # Simple oval: straight → hairpin → straight → hairpin
+
+      # STRAIGHT 1
+      - {x: 0,  y: 0,  width: 3.5, section: "start",      radius: 0}
+      - {x: 0,  y: 25, width: 3.5, section: "straight_1",  radius: 0}
+      - {x: 0,  y: 50, width: 3.5, section: "straight_1",  radius: 0}
+      - {x: 0,  y: 75, width: 3.5, section: "straight_1",  radius: 0}
+      - {x: 0,  y: 90, width: 3.5, section: "straight_1",  radius: 0}
+
+      # HAIRPIN 1 (180° right, 9 m radius)
+      - {x: 0,  y: 95,  width: 3.5, section: "hairpin_1_entry", radius: 9}
+      - {x: 3,  y: 100, width: 3.5, section: "hairpin_1",       radius: 9}
+      - {x: 9,  y: 104, width: 3.5, section: "hairpin_1_apex",  radius: 9}
+      - {x: 15, y: 100, width: 3.5, section: "hairpin_1",       radius: 9}
+      - {x: 18, y: 95,  width: 3.5, section: "hairpin_1_exit",  radius: 9}
+
+      # STRAIGHT 2 (heading back)
+      - {x: 18, y: 75, width: 3.5, section: "straight_2",  radius: 0}
+      - {x: 18, y: 50, width: 3.5, section: "straight_2",  radius: 0}
+      - {x: 18, y: 25, width: 3.5, section: "straight_2",  radius: 0}
+      - {x: 18, y: 5,  width: 3.5, section: "straight_2",  radius: 0}
+
+      # HAIRPIN 2 (180° left, 9 m radius, back to start)
+      - {x: 18, y: 0,  width: 3.5, section: "hairpin_2_entry", radius: 9}
+      - {x: 15, y: -5, width: 3.5, section: "hairpin_2",       radius: 9}
+      - {x: 9,  y: -9, width: 3.5, section: "hairpin_2_apex",  radius: 9}
+      - {x: 3,  y: -5, width: 3.5, section: "hairpin_2",       radius: 9}
+      - {x: 0,  y: 0,  width: 3.5, section: "finish",          radius: 0}
+
+    simulation_notes: |
+      Test track purpose:
+      - Validate basic physics (acceleration, braking, cornering)
+      - Quick iteration during development
+      - Compare to hand calculations:
+        * Straight: time = sqrt(2 × distance / acceleration)
+        * Hairpin: speed = sqrt(lateral_g × radius × 9.81)
+      - Expected lap time: ~15–17 seconds
+
+      Use this track to verify:
+      1. Motor torque curve is correct
+      2. Tire grip model works
+      3. Weight transfer calculations are right
+      4. Forward/backward pass algorithm produces sensible results
+
+
+# =============================================================================
+# TRACK GENERATION UTILITIES
+# =============================================================================
+# Helper functions for procedural track generation.
+
+generation_utilities:
+
+  circular_arc:
+    description: "Generate waypoints for a circular arc"
+    formula: |
+      For N points around arc of radius R, angle θ (radians):
+      x[i] = center_x + R × cos(i × θ / N)
+      y[i] = center_y + R × sin(i × θ / N)
+
+  clothoid_spiral:
+    description: "Generate smooth corner entry/exit (variable radius)"
+    note: "Advanced feature — for future enhancement"
+
+  racing_line_optimizer:
+    description: "Optimise racing line through waypoints"
+    note: "Move toward outside on entry, apex at geometric centre, outside on exit"
+
+
+# =============================================================================
+# VALIDATION TARGETS
+# =============================================================================
+# Expected results for each track (from OptimumLap or real data).
+
+validation_targets:
+  fb_acceleration:
+    time_to_75m: 4.2       # seconds
+    max_speed: 85           # km/h
+
+  fb_skidpad:
+    time_per_loop: 4.8      # seconds
+    constant_speed: 38.5    # km/h
+    lateral_g: 1.3          # g's
+
+  fb_autocross:
+    lap_time: 68            # seconds
+    avg_speed: 63           # km/h
+    max_speed: 90           # km/h
+    energy_per_lap: 0.35    # kWh
+
+  fb_endurance:
+    total_time: 1260        # seconds (21 minutes for 22 km)
+    total_energy: 7.0       # kWh (at limit)
+    avg_lap_time: 70        # seconds
+
+  test_track:
+    lap_time: 16            # seconds (estimate)
