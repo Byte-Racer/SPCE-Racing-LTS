@@ -10,7 +10,7 @@ Physics models included:
   - Aerodynamic forces — downforce and drag
   - Weight transfer — longitudinal (accel/brake) and lateral (cornering)
   - Combined tire loading — friction circle constraint
-  - Regenerative braking energy recovery (TEST, humari team ki itni aukaat nahi h filhal)
+  - Mechanical braking (all four wheels, tire-limited)
 
 Author: Arceus
 """
@@ -127,6 +127,7 @@ class VehicleDynamics:
         # ── Tires ────────────────────────────────────────────────────────
         tires = config["tires"]
         self.tire_peak_mu: float = tires["friction"]["peak_mu"]
+        self.tire_braking_mu: float = tires["friction"].get("braking_mu", self.tire_peak_mu)
         self.tire_nominal_mu: float = tires["friction"]["nominal_mu"]
         self.tire_load_sensitivity: float = tires["friction"]["load_sensitivity"]
         self.pacejka_B: float = tires["pacejka"]["B"]  # stiffness
@@ -142,13 +143,7 @@ class VehicleDynamics:
         self.air_density: float = aero["air_density"]  # kg/m³
         self.aero_reference_area: float = aero["reference_area"]  # m²
 
-        # ── Regenerative braking ─────────────────────────────────────────
-        regen = config["regen"]
-        self.regen_enabled: bool = regen["enabled"]
-        self.regen_max_power: float = regen["max_power"] * 1000  # kW → W
-        self.regen_max_torque: float = regen["max_torque"]  # Nm at motor
-        self.regen_efficiency: float = regen["efficiency"]  # 0–1
-        self.regen_cutoff_speed: float = regen["cutoff_speed"]  # m/s
+        # Regenerative braking has been removed from this vehicle model.
 
         # ── Performance limits ───────────────────────────────────────────
         limits = config["limits"]
@@ -404,7 +399,7 @@ class VehicleDynamics:
         }
 
     def calculate_tire_force_capacity(
-            self, normal_load: float, slip_angle: float = 0.0
+            self, normal_load: float, slip_angle: float = 0.0, is_braking: bool = False
     ) -> Dict[str, float]:
         """Return the force budget of a single tyre.
 
@@ -439,7 +434,8 @@ class VehicleDynamics:
         # Reference load = static quarter-car weight
         # Sensitivity is per kN of load difference (YAML value is −0.02/kN)
         ref_load = self.total_weight / 4.0
-        mu_eff = self.tire_peak_mu + self.tire_load_sensitivity * (
+        base_mu = self.tire_braking_mu if is_braking else self.tire_peak_mu
+        mu_eff = base_mu + self.tire_load_sensitivity * (
                 (normal_load - ref_load) / 1000.0
         )
         mu_eff = float(np.clip(mu_eff, 0.3, 2.0))
@@ -594,19 +590,14 @@ class VehicleDynamics:
         # a = F / m, floored at zero (can't "decelerate" via throttle)
         return float(max(net / self.mass, 0.0))
 
-    def max_braking_deceleration(
-            self, speed: float, use_regen: bool = True
-    ) -> float:
+    def max_braking_deceleration(self, speed: float) -> float:
         """Maximum braking deceleration at *speed* (returned as positive value).
 
-        Composed of:
-        * **Mechanical brakes** on all four wheels, limited by tyre grip.
-        * **Regenerative braking** on the driven (rear) axle, limited by
-          motor torque, regen power cap, and cutoff speed.
+        Mechanical brakes only — all four wheels, tire-grip limited.
+        Regenerative braking has been removed from this model.
 
         Args:
             speed: Vehicle speed in **m/s**.
-            use_regen: Include regenerative braking contribution.
 
         Returns:
             Maximum braking deceleration in **m/s²** (positive number).
@@ -619,29 +610,11 @@ class VehicleDynamics:
         fz_f = loads["front_total"] / 2.0 + aero["downforce_front"] / 2.0
         fz_r = loads["rear_total"] / 2.0 + aero["downforce_rear"] / 2.0
 
-        brake_front = 2.0 * self.calculate_tire_force_capacity(fz_f)["max_longitudinal"]
-        brake_rear = 2.0 * self.calculate_tire_force_capacity(fz_r)["max_longitudinal"]
+        brake_front = 2.0 * self.calculate_tire_force_capacity(fz_f, is_braking=True)["max_longitudinal"]
+        brake_rear = 2.0 * self.calculate_tire_force_capacity(fz_r, is_braking=True)["max_longitudinal"]
         mech_force = brake_front + brake_rear
 
-        # ── Regenerative braking ─────────────────────────────────────
-        regen_force = 0.0
-        if self.regen_enabled and use_regen and speed > self.regen_cutoff_speed:
-            # Torque-limited regen force at wheels
-            regen_wheel_t = (
-                    self.regen_max_torque
-                    * self.motor_count
-                    * self.gear_ratio
-                    * self.drivetrain_efficiency
-            )
-            regen_f_torque = regen_wheel_t / self.wheel_radius
-
-            # Power-limited regen force
-            regen_f_power = (self.regen_max_power / speed) if speed > 1.0 else 1e6
-
-            regen_force = min(regen_f_torque, regen_f_power)
-
-        total_force = mech_force + regen_force
-        return float(total_force / self.mass)
+        return float(mech_force / self.mass)
 
     # ------------------------------------------------------------------ #
     #  Energy accounting                                                  #
@@ -676,14 +649,13 @@ class VehicleDynamics:
         mech_power = total_force * speed  # W
 
         # Map to battery power through efficiency chain
+        # Regenerative braking has been removed — only motoring accounted for.
         if mech_power > 0:
-            # Motoring — battery must supply more than mechanical output
             battery_power = mech_power / (
                     self.motor_efficiency * self.drivetrain_efficiency
             )
         else:
-            # Regenerating — only a fraction of braking energy is recovered
-            battery_power = mech_power * self.regen_efficiency
+            battery_power = 0.0  # No regen — unpowered segment costs nothing
 
         energy_wh = battery_power * dt / 3600.0  # J → Wh
 

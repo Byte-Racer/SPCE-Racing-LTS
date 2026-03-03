@@ -128,8 +128,8 @@ motor:
 
 thermal:
   motor:
-    thermal_mass: 5000  # J/K (copper windings + iron core)
-    cooling_coefficient: 50  # W/K (liquid cooling)
+    thermal_mass: 8100  # J/K (13.5 kg motor mass * ~600 J/kg*K typical specific heat for copper+iron)
+    cooling_coefficient: 85  # W/K (Back-calculated: P_loss ≈ 3720W at 60kW. target ΔT=45°C. h = 3720/45 ≈ 83 W/K. Use 85 for flow margin)
     ambient_temp: 25  # °C
   inverter:
     thermal_mass: 2000  # J/K
@@ -142,8 +142,8 @@ thermal:
 # How motor power reaches the wheels.
 
 drivetrain:
-  gear_ratio: 10.0  # Motor RPM ÷ Wheel RPM
-    # 10:1 reduction. Motor spins 10× faster than wheels.
+  gear_ratio: 3.6  # Motor RPM ÷ Wheel RPM
+    # 3.6:1 reduction. Motor spins 3.6× faster than wheels.
     # Higher ratio = more torque at wheels, but lower top speed.
     # Torque at wheels = motor torque × gear ratio × efficiency.
 
@@ -261,10 +261,7 @@ battery_pack:
   power_limits:
     continuous: 80  # kW (164 A × 486 V)
     peak: 97        # kW (200 A × 486 V)
-    regen_max: 40   # kW (charging during braking)
-    # Continuous power is your limiting factor in endurance.
-    # Peak power for brief acceleration bursts.
-    # Regen limited by battery charge acceptance and motor capability.
+    # Regen has been disabled; regen_max entry removed.
 
   resistance:
     pack_total: 0.506  # Ohms (15 mΩ × 135s ÷ 4p)
@@ -312,36 +309,19 @@ soc_voltage_curve:
 
 
 # ===== REGENERATIVE BRAKING =====
-# Energy recovery during braking/deceleration.
+# DISABLED — mechanical brakes only.
 
 regen:
-  enabled: true
+  enabled: false  # Regen removed from this vehicle model.
 
-  max_power: 40  # kW total (limited by battery charge acceptance)
-    # Can't regen more than battery can absorb.
-    # At 486 V: 40 kW ≈ 82 A charging current.
-
-  max_torque: 60  # Nm at motor shaft (conservative, thermally limited)
-    # Motor acting as generator.
-    # Less than drive torque due to thermal limits on windings.
-
-  efficiency: 0.85  # 85% (motor as generator + DC/DC conversion losses)
-    # 15% lost as heat during regen.
-    # Still much better than friction brakes (100% heat loss).
-
-  wheel_torque_equivalent: 558  # Nm at wheels (60 Nm × 10 × 0.93)
-    # Equivalent braking force at wheels.
-    # At 0.2032 m radius ≈ 2,746 N force at contact patch.
-
+  # The following values are kept for reference but are not used:
+  max_power: 40   # kW
+  max_torque: 60  # Nm at motor shaft
+  efficiency: 0.85
   blending:
-    mechanical_bias: 0.65  # 65% front when using friction brakes
-    regen_axle: "rear"     # Regen only on driven axle
-    # Must blend regen with mechanical brakes smoothly.
-    # Driver feels constant deceleration as speeds/forces change.
-
-  cutoff_speed: 2.78  # m/s (10 km/h)
-    # Disable regen at very low speeds for safety/smoothness.
-    # Also prevents overcharging at low power levels.
+    mechanical_bias: 0.65
+    regen_axle: "rear"
+  cutoff_speed: 2.78  # m/s
 
 
 # ===== TIRE SPECIFICATIONS =====
@@ -355,10 +335,11 @@ tires:
 
   # — FRICTION MODEL (Simplified Pacejka "Magic Formula") —
   friction:
-    peak_mu: 1.5     # Peak friction coefficient (dry asphalt)
+    peak_mu: 1.4     # Peak friction coefficient (dry asphalt, cornering/accel)
+    braking_mu: 1.3  # Peak braking friction coefficient (longitudinal)
     nominal_mu: 1.4  # Typical operating coefficient
-    # μ = 1.5 means tire can generate 1.5× normal force as grip.
-    # At 750 N load: max grip = 750 × 1.5 = 1,125 N lateral or longitudinal.
+    # μ = 1.4 means tire can generate 1.4× normal force as grip.
+    # At 750 N load: max grip = 750 × 1.4 = 1,050 N lateral or longitudinal.
 
     slip_angle_peak: 4  # degrees (angle where peak lateral force occurs)
     # Tire must "slip" slightly sideways to generate lateral force.
@@ -444,7 +425,7 @@ limits:
   # — SPEED LIMITS —
   top_speed: 120           # km/h (33.3 m/s)
     # Limited by motor RPM and gearing.
-    # Top speed in 10:1 gearing = (6500 RPM × 0.2032 m × 2π × 60) / 10 ≈ 138 km/h.
+    # Top speed in 3.6:1 gearing = (6500 / 3.6) * (2*pi*0.2032) * (60 / 1000) ≈ 138 km/h.
     # Set slightly lower for safety margin.
 
   minimum_turn_radius: 3.0  # meters
@@ -467,9 +448,7 @@ dynamics:
     # Lower ratio = more responsive but touchier.
 
   # — BRAKING —
-  brake_bias: 0.65  # 65% front, 35% rear (without regen)
-    # Reflects front weight transfer under braking.
-    # With regen on rear, effective bias changes.
+  brake_bias: 0.65  # 65% front, 35% rear (mechanical brakes only)
 
 
 # ===== NOTES AND DESIGN RATIONALE =====

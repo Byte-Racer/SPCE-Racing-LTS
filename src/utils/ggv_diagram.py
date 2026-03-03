@@ -205,8 +205,7 @@ class GGVDiagramGenerator:
     def _max_braking_decel(self, speed: float, ay: float, mode: str) -> float:
         """Max braking deceleration (positive number) at ``(speed, a_y)``.
 
-        All four tyres contribute.  Regen is added on the rear axle but
-        is conservatively reduced when cornering hard (> 1.5 g lateral).
+        All four tyres contribute (mechanical brakes only — regen removed).
         """
         veh = self.vehicle
 
@@ -231,22 +230,7 @@ class GGVDiagramGenerator:
 
         mech_force = 2.0 * fx_f + 2.0 * fx_r  # all four tyres
 
-        # Regen — reduce linearly when lateral-g exceeds 1.5 g
-        regen_force = 0.0
-        if veh.regen_enabled and speed > veh.regen_cutoff_speed:
-            scale = float(np.clip(1.0 - abs(ay) / (1.5 * G), 0.0, 1.0))
-            regen_wt = (
-                    veh.regen_max_torque
-                    * scale
-                    * veh.motor_count
-                    * veh.gear_ratio
-                    * veh.drivetrain_efficiency
-            )
-            regen_f_torque = regen_wt / veh.wheel_radius
-            regen_f_power = (veh.regen_max_power / speed) if speed > 1.0 else 1e6
-            regen_force = min(regen_f_torque, regen_f_power)
-
-        return (mech_force + regen_force) / veh.mass
+        return mech_force / veh.mass
 
     # ================================================================== #
     #  Plotting helpers                                                   #

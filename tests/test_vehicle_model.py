@@ -230,14 +230,11 @@ class TestAccelerationLimits:
         ab = vehicle.max_braking_deceleration(15.0)
         assert ab > 0
 
-    def test_braking_greater_without_regen_below_cutoff(
-        self, vehicle: VehicleDynamics
-    ):
-        """Below regen cutoff speed, regen should make no difference."""
-        speed = 1.0  # well below 2.78 m/s cutoff
-        with_regen = vehicle.max_braking_deceleration(speed, use_regen=True)
-        without_regen = vehicle.max_braking_deceleration(speed, use_regen=False)
-        assert with_regen == pytest.approx(without_regen, rel=0.01)
+    def test_braking_decel_reasonable(self, vehicle: VehicleDynamics):
+        """Braking deceleration should be positive and within a realistic band."""
+        ab = vehicle.max_braking_deceleration(15.0)
+        g_val = ab / 9.81
+        assert 1.0 < g_val < 3.0  # physically sensible for FSAE with aero
 
     def test_cornering_speed_values(self, vehicle: VehicleDynamics):
         """Tighter corner → lower max speed."""

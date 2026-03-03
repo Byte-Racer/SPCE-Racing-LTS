@@ -451,9 +451,9 @@ class MotorInverterModel:
 
         motor_heat_gen = power_loss  # W
 
-        # Cooling power (enhanced by airflow)
-        # Natural convection + forced convection from vehicle motion
-        airflow_factor = 1.0 + (airflow_speed / 10.0)  # 10 m/s doubles cooling
+        # Cooling power (liquid core + some forced convection from airflow on casing)
+        # EMRAX is mostly internally liquid cooled. Surface air cooling at 15m/s adds ≈ 10% bonus.
+        airflow_factor = 1.0 + (airflow_speed / 150.0)
         cooling_power = self.motor_cooling_coeff * airflow_factor * (self.motor_temp - ambient_temp)
 
         # Net heat rate
@@ -488,7 +488,8 @@ class MotorInverterModel:
             self.logger.warning(f"⚠ Inverter temperature critical: {self.inverter_temp:.1f}°C")
 
     def simulate_operation(self, throttle_percent: float, rpm: float,
-                           voltage_dc: float, duration: float, dt: float = 0.1) -> Dict:
+                           voltage_dc: float, duration: float, dt: float = 0.1,
+                           airflow_speed: float = 15.0) -> Dict:
         """
         Simulate motor operation over a time period.
 
@@ -536,7 +537,7 @@ class MotorInverterModel:
             power_loss = power_elec - power_mech
 
             # Update thermal state
-            self.update_thermal_state(power_loss, dt)
+            self.update_thermal_state(power_loss, dt, airflow_speed=airflow_speed)
 
             # Accumulate energy
             energy_kwh = (power_elec * dt) / 3600  # Wh
@@ -720,8 +721,8 @@ def example_endurance_simulation():
     
     thermal_config = {
         'motor': {
-            'thermal_mass': 5000,  # J/K (copper windings + iron core)
-            'cooling_coefficient': 50,  # W/K (liquid cooling)
+            'thermal_mass': 8100,  # J/K (13.5 kg motor mass * ~600 J/kg*K typical specific heat for copper+iron+housing)
+            'cooling_coefficient': 85,  # W/K (Back-calc: P_loss ≈ 3720W, ΔT=45°C, h = 3720/45 ≈ 83 W/K, 85 used for margin)
             'ambient_temp': 25  # °C
         },
         'inverter': {

@@ -1,0 +1,31 @@
+# =============================================================================
+# QSS LAP TIME SOLVER — CONFIGURATION
+# =============================================================================
+# SPCE Racing | Arceus
+#
+# All units SI unless otherwise noted.
+# =============================================================================
+
+solver:
+  mode: "peak"            # 'peak' uses 97 kW battery limit, 'continuous' 80 kW
+  n_laps_endurance: 22    # Formula Bharat endurance laps (approx)
+  initial_soc: 1.0        # Start fully charged (0.0 – 1.0)
+  speed_floor: 0.5        # m/s — minimum allowed speed (avoids division by zero)
+  max_iterations: 5       # Fixed-point iterations for corner-speed convergence
+  ds_resample: 0.5        # m — target segment length; track is resampled if coarser
+
+  # --- Battery limits (cross-checked against vehicle_params.yaml at runtime) ---
+  soc_floor: 0.20          # Flag energy_critical when SOC drops to 20 %
+  soc_peak_boost_min: 0.50 # Allow peak 97 kW only when SOC above this threshold
+
+events:
+  autocross:
+    mode: peak
+    laps: 1
+    expected_lap_time: [45, 65]   # seconds — sanity-check range
+
+  endurance:
+    mode: continuous
+    laps: 22
+    energy_budget_wh: 7000        # 7 kWh usable (matches battery.energy.usable)
+    expected_lap_time: [50, 75]   # seconds — sanity-check range
