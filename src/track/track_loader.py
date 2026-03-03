@@ -105,10 +105,24 @@ def load_from_config(config_path: str, track_name: Optional[str] = None) -> Trac
         # Convert waypoints list → CSV-style DataFrame and go through CSV path
         waypoints = cfg.get("waypoints", [])
         if isinstance(waypoints, str):
-            # Special flag (e.g. "USE_AUTOCROSS_LAYOUT") — unsupported inline
-            raise ValueError(
-                f"Track '{track_name}' uses a redirect waypoints value "
-                f"('{waypoints}'). Load the referenced track by name instead."
+            # Special flag (e.g. "USE_AUTOCROSS_LAYOUT") — resolve by finding
+            # the referenced track's waypoints in the same file.
+            ref_event = waypoints.replace("USE_", "").replace("_LAYOUT", "").lower()
+            ref_matches = [
+                e for e in entries
+                if e.get("event", "").lower() == ref_event
+                   and isinstance(e.get("waypoints"), list)
+            ]
+            if not ref_matches:
+                raise ValueError(
+                    f"Track '{cfg.get('name')}' references '{waypoints}' but no "
+                    f"track with event='{ref_event}' and list waypoints was found."
+                )
+            waypoints = ref_matches[0]["waypoints"]
+            logger.info(
+                "Resolved '%s' → using waypoints from track '%s'",
+                cfg.get("name"),
+                ref_matches[0].get("name"),
             )
         xs = [float(wp["x"]) for wp in waypoints]
         ys = [float(wp["y"]) for wp in waypoints]

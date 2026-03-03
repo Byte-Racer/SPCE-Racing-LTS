@@ -263,7 +263,7 @@ class EnduranceResult:
     def _compute_stats(self) -> None:
         times = [lap.lap_time for lap in self.laps]
         self.total_time: float = float(np.sum(times))
-        self.total_energy: float = float(np.sum(lap.energy_consumed for lap in self.laps))
+        self.total_energy: float = float(sum(lap.energy_consumed for lap in self.laps))
         self.final_soc: float = self.laps[-1].final_soc
         self.avg_lap_time: float = float(np.mean(times))
         self.best_lap_time: float = float(np.min(times))

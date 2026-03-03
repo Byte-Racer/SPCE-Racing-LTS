@@ -86,7 +86,14 @@ class AccelerationZones:
         v_bwd = self._backward_pass(v_bwd, v_corner, ds)
 
         # ── Element-wise min = achievable profile ─────────────────────────
-        v_final = np.minimum(v_fwd, v_bwd)
+        v_merged = np.minimum(v_fwd, v_bwd)
+
+        # ── Reconciliation pass ──────────────────────────────────────────
+        # The element-wise min can create unvalidated braking transitions
+        # at points where the active constraint switches from forward to
+        # backward.  Run one more backward pass on the merged profile to
+        # re-enforce braking limits on these transitions.
+        v_final = self._backward_pass(v_merged, v_corner, ds)
         v_final = np.clip(v_final, self.speed_floor, float(self.vehicle.top_speed))
 
         # ── Derive per-segment acceleration and limiting factor ───────────

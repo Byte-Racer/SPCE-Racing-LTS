@@ -4,7 +4,7 @@ Curvature computation for track paths.
 Provides signed curvature κ = 1/R (1/m) at each path point using the
 standard 3-point tangent-cross-product formula, with optional Gaussian
 smoothing and closed-loop handling.
-
+ and
 Arceus, SPCE Racing
 """
 

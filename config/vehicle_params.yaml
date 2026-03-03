@@ -128,8 +128,8 @@ motor:
 
 thermal:
   motor:
-    thermal_mass: 8100  # J/K (13.5 kg motor mass * ~600 J/kg*K typical specific heat for copper+iron)
-    cooling_coefficient: 85  # W/K (Back-calculated: P_loss ≈ 3720W at 60kW. target ΔT=45°C. h = 3720/45 ≈ 83 W/K. Use 85 for flow margin)
+    thermal_mass: 5000  # J/K
+    cooling_coefficient: 50  # W/K
     ambient_temp: 25  # °C
   inverter:
     thermal_mass: 2000  # J/K

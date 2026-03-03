@@ -1,10 +1,15 @@
 import os
 import sys
+import matplotlib
+matplotlib.use("Agg")  # non-interactive backend for CI/headless
 import matplotlib.pyplot as plt
 
-sys.path.append("c:\\Users\\garim\\OneDrive\\Desktop\\Chaos\\Custom LTS")
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.vehicle.motor_inverter_model import MotorInverterModel
+
+# Root of the project (for saving output)
+_PROJECT_ROOT = os.path.join(os.path.dirname(__file__), "..")
 
 def test_endurance_simulation():
     # Initialize motor model
@@ -73,8 +78,9 @@ def test_endurance_simulation():
     ax2.legend()
     
     plt.tight_layout()
-    plt.savefig('c:\\Users\\garim\\OneDrive\\Desktop\\Chaos\\Custom LTS\\endurance_thermal_simulation.png', dpi=300)
-    print("Saved plot to endurance_thermal_simulation.png")
+    save_path = os.path.join(_PROJECT_ROOT, 'endurance_thermal_simulation.png')
+    plt.savefig(save_path, dpi=300)
+    print(f"Saved plot to {save_path}")
 
 if __name__ == "__main__":
     test_endurance_simulation()
