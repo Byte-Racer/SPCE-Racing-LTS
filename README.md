@@ -1,45 +1,133 @@
-# SPCE EV Lap Time Simulator
+# SPCE Racing — EV Lap Time Simulator
 
-A Python-based lap time simulation tool for SPCE Racing, created by Arceus. 
-- Project aim : Build an accurate EV lap time simulator to predict lap times in dynamic events, test parameters by giving varied inputs
-- Progress : Configuration part done, coding ongoing
+A Python based quasi-steady-state lap time simulator for SPCE Racing's Formula Student Electric vehicle. 
 
-## To run GGV file:
-cd "C:\Users\garim\OneDrive\Desktop\Chaos\Custom LTS"
-$env:PYTHONPATH = "C:\Users\garim\OneDrive\Desktop\Chaos\Custom LTS"
-& "C:\Users\garim\AppData\Local\Programs\Python\Python313\python.exe" -m src.utils.ggv_diagram
+Built to predict lap times for dynamic events, model energy consumption, and test vehicle parameter changes.
 
-## Installation
-If ever published into a github repo, add steps
+## Background
+
+We got tired of inaccurate simulation results :/
+
+This simulator gives SPCE Racing a data-driven tool to:
+- Predict lap times for Formula Bharat dynamic events (Autocross, Endurance, Acceleration)
+- Understand vehicle performance (motor, battery, tires, aero)
+- Test parameter changes (gear ratio, aero setup, motor limits) before build
+
+Built around the EMRAX 228 MV LC motor and a Molicel P45B 135s4p battery pack.
+
+## Features
+
+- **QSS Solver** — forward/backward integration pass algorithm for speed profile generation
+- **Electro-thermal motor model** — torque delivery, thermal derating, field weakening, inverter losses
+- **GGV diagram generation** — full 3D performance envelope across all speeds
+- **Energy tracking** — SOC progression, voltage sag, battery power limits per segment
+- **Multi-lap endurance simulation** — thermal and energy state carried across laps
+- **Full visualization suite** — plots, track maps, endurance progression charts
+- **Data export** — CSV telemetry and Excel reports with per-lap breakdown
 
 ## Project Structure
-
+```
 Custom LTS/
+├── config/
+│   ├── vehicle_params.yaml      # Single file for all vehicle parameters
+│   ├── track_definitions.yaml   # Track layouts and waypoints
+│   └── solver_config.yaml       # Solver settings and event configuration
+├── src/
+│   ├── vehicle/
+│   │   ├── vehicle_model.py         # Full vehicle dynamics (tires, aero, weight transfer)
+│   │   └── motor_inverter_model.py  # EMRAX 228 electro-thermal model
+│   ├── track/
+│   │   ├── track_loader.py          # CSV and primitive-based track loading
+│   │   ├── track_representation.py  # Core Track object
+│   │   ├── curvature.py             # Curvature computation from path
+│   │   └── track_visualizer.py      # Track map plotting
+│   ├── solver/
+│   │   ├── qss_solver.py            # Main QSS lap time solver
+│   │   ├── speed_profile.py         # Min-speed and integration passes
+│   │   ├── energy_tracker.py        # SOC and battery state tracking
+│   │   └── lap_results.py           # Results containers
+│   └── utils/
+│       ├── ggv_diagram.py           # GGV performance envelope generator
+│       ├── telemetry_plotter.py     # Single-lap visualization
+│       ├── endurance_plotter.py     # Multi-lap visualization
+│       ├── track_plotter.py         # Track map with data overlay
+│       ├── data_exporter.py         # CSV and Excel export
+│       └── report_generator.py      # Full report generation entry point
+├── tests/                       # Unit and integration tests
+├── results/                     # Simulation output (plots, CSVs, Excel)
+├── main.py                      # Integration smoke test / entry point
+└── requirements.txt
+```
 
-- src/
-    - vehicle/ — Vehicle dynamics models (tyres, powertrain, aero, chassis)
-    - track/ — Track representation and geometry processing
-    - solver/ — Lap time optimisation algorithms
-    - utils/ — Plotting, data export, and helper functions
-- config/ — YAML configuration files for vehicle & track parameters
-- tests/ — Unit and integration tests
-- requirements.txt
-- README.md
+## Installation
 
-## Modules
+**Requirements:** Python 3.10+
 
-| Module        | Purpose                                                          |
-| ------------- | ---------------------------------------------------------------- |
-| `src.vehicle` | Tyre model, powertrain, aerodynamics, and full vehicle dynamics  |
-| `src.track`   | Track loading, curvature computation, and segment discretisation |
-| `src.solver`  | Quasi-steady-state and transient lap time optimisation           |
-| `src.utils`   | Result visualisation, telemetry plots, and CSV/Excel export      |
+Clone the repo and install dependencies:
+```bash
+git clone https://github.com/Byte-Racer/SPCE-Racing-LTS.git
+cd SPCE-Racing-LTS
+pip install -r requirements.txt
+```
 
-## Dependencies
+## Usage
 
-- **NumPy** — numerical arrays and linear algebra
-- **SciPy** — optimisation solvers and interpolation
-- **Matplotlib** — plotting and visualisation
-- **PyYAML** — YAML configuration parsing
-- **Pandas** — tabular data handling and export
-- **CasADi** _(optional)_ — symbolic framework for advanced NLP-based optimisation
+**Set PYTHONPATH before running** (required for module imports):
+```powershell
+# Windows (PowerShell)
+cd "C:\path\to\Custom LTS"
+$env:PYTHONPATH = "C:\path\to\Custom LTS"
+```
+
+**Run the full simulation :**
+```bash
+python main.py
+```
+
+**Run autocross only (faster, skips endurance):**
+```bash
+python main.py --quick
+```
+
+**Run GGV diagram only:**
+```bash
+python -m src.utils.ggv_diagram
+```
+
+**Run tests:**
+```bash
+python -m pytest tests/ -v
+```
+
+Results are saved to `results/{YYYY-MM-DD_HH-MM}/` with plots, CSVs, and an Excel report.
+
+## Module Overview
+
+| Module | Purpose |
+|---|---|
+| `src.vehicle` | Tire model, powertrain, aerodynamics, full vehicle dynamics |
+| `src.track` | Track loading, curvature computation, segment discretisation |
+| `src.solver` | QSS lap time optimisation, energy tracking, multi-lap state |
+| `src.utils` | Visualization, telemetry plots, GGV diagrams, data export |
+
+## Vehicle Configuration
+
+All vehicle parameters live in `config/vehicle_params.yaml`. 
+Key specs :
+
+| Parameter              | Value                |
+| ---------------------- | -------------------- |
+| Motor                  | EMRAX 228 MV LC      |
+| Peak torque            | 220 Nm               |
+| Peak power             | 62 kW                |
+| Battery                | Molicel P45B, 135s4p |
+| Pack voltage (nominal) | 486 V                |
+| Total mass             | 300 kg               |
+
+## Roadmap
+
+- [ ] Validate lap times against OptimumLap predictions  
+- [ ] DAQ telemetry overlay (compare simulation vs real car data)  
+## Author
+
+**Garima (Arceus)** — SPCE Racing, Electric Powertrain Department
