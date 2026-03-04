@@ -335,7 +335,30 @@ class QSSSolver:
                 rpm=self._speed_to_rpm(v_avg),
                 voltage_dc=step["v_oc"],
             )
-            power_loss_w = bat_power * (1.0 - motor_state["efficiency"])
+
+            # Compute motor-only heat dissipation.
+            # bat_power includes losses from both the motor and the drivetrain.
+            # Motor electrical input = bat_power (battery → motor, neglecting
+            # battery I²R for thermal purposes).
+            # Motor mechanical output = bat_power * motor_efficiency.
+            # Motor heat = bat_power * (1 - motor_efficiency).
+            # BUT the drivetrain loss (7 %) is downstream of the motor and does
+            # NOT heat the motor windings.  The correct motor heat is:
+            #   P_mech_at_wheels = bat_power * eta_motor * eta_drivetrain
+            #   P_motor_shaft    = bat_power * eta_motor
+            #   P_motor_heat     = bat_power - P_motor_shaft
+            #                    = bat_power * (1 - eta_motor)
+            # However, bat_power was derived as P_mech_wheels / (eta_motor *
+            # eta_dt), so P_motor_shaft = P_mech_wheels / eta_dt.
+            # The motor electrical input is P_motor_shaft / eta_motor
+            #   = P_mech_wheels / (eta_dt * eta_motor) = bat_power.
+            # So motor heat = bat_power - bat_power * eta_motor
+            #               = bat_power * (1 - eta_motor).
+            # This is correct, BUT bat_power is now clamped to battery peak.
+            # The original bug was that bat_power was unclamped (up to 368 kW).
+            eta_motor = motor_state["efficiency"]
+            power_loss_w = bat_power * (1.0 - eta_motor)
+
             self.vehicle.motor_model.update_thermal_state(
                 power_loss=max(power_loss_w, 0.0),
                 dt=dt,
@@ -398,6 +421,9 @@ class QSSSolver:
             p_bat = p_mech / (
                 self.vehicle.motor_efficiency * self.vehicle.drivetrain_efficiency
             )
+            # Clamp to battery pack power limit — the pack physically cannot
+            # deliver more than its peak rating.
+            p_bat = min(p_bat, self.vehicle.battery_peak_power)
         else:
             # Braking — only drag + roll assistance (no battery draw)
             # Net force from drag/rr helps braking; we model zero battery draw.

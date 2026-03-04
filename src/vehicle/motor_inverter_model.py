@@ -564,7 +564,8 @@ class MotorInverterModel:
 
     def get_wheel_torque_realtime(self, throttle: float, vehicle_speed: float,
                                   battery_voltage: float, gear_ratio: float,
-                                  wheel_radius: float, dt: float = 0.01) -> Dict:
+                                  wheel_radius: float, dt: float = 0.01,
+                                  update_thermal: bool = False) -> Dict:
         """
         Interface for real-time simulation - replaces simplified motor model.
 
@@ -610,7 +611,8 @@ class MotorInverterModel:
 
         # Update thermal state
         power_loss = power_battery - power_mechanical
-        self.update_thermal_state(power_loss, dt, airflow_speed=vehicle_speed)
+        if update_thermal:
+            self.update_thermal_state(power_loss, dt, airflow_speed=vehicle_speed)
 
         return {
             'wheel_torque': float(wheel_torque),

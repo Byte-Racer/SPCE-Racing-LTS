@@ -128,8 +128,8 @@ motor:
 
 thermal:
   motor:
-    thermal_mass: 5000  # J/K
-    cooling_coefficient: 50  # W/K
+    thermal_mass: 8100  # J/K (13.5 kg × ~600 J/kg·K for copper/iron/aluminium composite)
+    cooling_coefficient: 85  # W/K (liquid cooling at 6 L/min; back-calc from continuous losses)
     ambient_temp: 25  # °C
   inverter:
     thermal_mass: 2000  # J/K
