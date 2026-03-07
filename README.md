@@ -1,5 +1,6 @@
 # FSEV Lap Time Simulator
 Forged into existence by Arceus (GP)
+
 A Python based quasi-steady-state lap time simulator for our racing team's Formula Student Electric vehicle. 
 
 Built to predict lap times for dynamic events, model energy consumption, and test vehicle parameter changes.
