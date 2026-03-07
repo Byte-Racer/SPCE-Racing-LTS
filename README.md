@@ -1,6 +1,6 @@
-# SPCE Racing — EV Lap Time Simulator
-
-A Python based quasi-steady-state lap time simulator for SPCE Racing's Formula Student Electric vehicle. 
+# FSEV Lap Time Simulator
+Forged into existence by Arceus (GP)
+A Python based quasi-steady-state lap time simulator for our racing team's Formula Student Electric vehicle. 
 
 Built to predict lap times for dynamic events, model energy consumption, and test vehicle parameter changes.
 
@@ -8,7 +8,7 @@ Built to predict lap times for dynamic events, model energy consumption, and tes
 
 We got tired of inaccurate simulation results :/
 
-This simulator gives SPCE Racing a data-driven tool to:
+This simulator gives our racing team a data-driven tool to:
 - Predict lap times for Formula Bharat dynamic events (Autocross, Endurance, Acceleration)
 - Understand vehicle performance (motor, battery, tires, aero)
 - Test parameter changes (gear ratio, aero setup, motor limits) before build
@@ -65,8 +65,8 @@ Custom LTS/
 
 Clone the repo and install dependencies:
 ```bash
-git clone https://github.com/Byte-Racer/SPCE-Racing-LTS.git
-cd SPCE-Racing-LTS
+git clone https://github.com/Byte-Racer/FSEV-LTS.git
+cd FSEV-LTS
 pip install -r requirements.txt
 ```
 
@@ -130,4 +130,4 @@ Key specs :
 - [ ] DAQ telemetry overlay (compare simulation vs real car data)  
 ## Author
 
-**Garima (Arceus)** — SPCE Racing, Electric Powertrain Department
+**Garima (Arceus)** — Electric Powertrain Department
